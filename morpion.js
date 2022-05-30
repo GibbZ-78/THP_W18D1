@@ -10,13 +10,27 @@ class Morpion {
 		[null, null, null],
 	];
 
-	constructor(firstPlayer = 'J1') {
+    // Adding useful vars to manage history (undo / redo)
+    historyGrid = [];
+    historyIndex = 0;
+
+    // Adding an AI level switch
+    morpionLevel = 1;
+
+    constructor(firstPlayer = 'J1') {
 		this.humanPlayer = firstPlayer;
 		this.iaPlayer = (firstPlayer === 'J1') ? 'J2' : 'J1';
 		this.initGame();
 	}
 
 	initGame = () => {
+
+        // Instantiate the turns historization feature
+        this.initHistory();
+
+        // Instantiate the AI level button
+        this.initLevel();
+
 		this.gridMap.forEach((line, y) => {
 			line.forEach((cell, x) => {
 				this.getCell(x, y).onclick = () => {
@@ -118,7 +132,17 @@ class Morpion {
 			return;
 		}
 
+        if (this.historyIndex !== this.turn) {
+            console.log("  > Aligning turn on history");
+            this.turn = this.historyIndex;
+            console.log("  > Deleting 'forward history'");
+            console.log(this.historyGrid);
+            this.historyGrid = copyGrid(this.historyGrid.splice(this.historyIndex, 9999));
+            console.log(this.historyGrid);
+        }
+
 		if (this.drawHit(x, y, this.humanPlayer)) {
+            this.doHistorize();
 			this.doPlayIa();
 		}
 	}
@@ -128,9 +152,46 @@ class Morpion {
 			return;
 		}
 
-        const { x, y } = this.minmax(this.gridMap, 0, -Infinity, Infinity, true);
-        this.drawHit(x, y, this.iaPlayer);
+        switch (this.morpionLevel) {
+            case 3:
+                const { x, y } = this.minmax(this.gridMap, 0, -Infinity, Infinity, true);
+                console.log("  > Using MinMax AI");
+                this.drawHit(x, y, this.iaPlayer);
+                break;
+            case 2:
+                const { u, v } = () => {
+                    this.gridMap.forEach((myLine, b) => {
+                        myLine.forEach((myCell, a) => {
+                            if (this.gridMap[b,a] === null) {
+                                return {b,a};
+                            }
+                        });
+                    });
+                }
+                console.log("  > Using 'first empty space' AI");
+                this.drawHit(u, v, this.iaPlayer);
+                break;
+            default:
+                
+                console.log("  > Using 'random' AI");
+                while (!this.drawHit(Math.floor(Math.random() * 3), Math.floor(Math.random() * 3), this.iaPlayer)) {
+                    console.log("    - coordinates already taken...");
+                };
+                break;
+        }
+        
+        
+        this.doHistorize();
 	}
+
+    doHistorize = () => {
+        this.historyGrid.push(this.copyGrid(this.gridMap));
+        console.log("  > historyGrid");
+        console.log(this.historyGrid);
+        this.historyIndex += 1;
+        console.log(`  > historyIndex = ${this.historyIndex}`);
+        console.log(`  > turn = ${this.turn}`);
+    }
 
     minmax = (board, depth, alpha, beta, isMaximizing) => {
         // Return a score when there is a winner
@@ -217,4 +278,89 @@ class Morpion {
 
         return bestHumanScore;
     }
+
+    refreshGrid = () => {
+        for (const y of [0, 1, 2]) {
+            for (const x of [0, 1, 2]) {
+                if (this.gridMap[y][x]) {
+                    this.getCell(x, y).classList.add(`filled-${this.gridMap[y][x]}`);
+                } else {
+                    this.getCell(x, y).classList.remove(`filled-J1`,`filled-J2`);
+                }
+            }
+        }
+        console.log(`  > historyIndex = ${this.historyIndex}`);
+        console.log(`  > turn = ${this.turn}`);
+        document.getElementById("undoButton").ariaDisabled = this.historyIndex <= 0;
+        document.getElementById("redoButton").ariaDisabled = this.historyIndex >= this.turn;
+        this.historyIndex <= 0 ? document.getElementById("undoButton").classList.add("disabled") : document.getElementById("undoButton").classList.remove("disabled");
+        this.historyIndex >= this.turn ? document.getElementById("redoButton").classList.add("disabled") : document.getElementById("redoButton").classList.remove("disabled");
+    };
+
+    copyGrid = (myGrid) => {
+        return JSON.parse(JSON.stringify(myGrid));
+    }
+
+    initHistory = () => {
+        this.historyGrid.push(this.copyGrid(this.gridMap));
+        console.log("*** Initializing history feature ***");
+        console.log("  > gridMap");
+        console.log(this.gridMap);
+        console.log("  > historyGrid");
+        console.log(this.historyGrid);
+        
+        document.getElementById("undoButton").onclick = (event) => {
+            event.preventDefault();
+            if (this.historyIndex > 0) {
+                this.historyIndex -= 1;
+                console.log(`Back to turn ${this.historyIndex} / ${this.turn}`);
+                this.gridMap = this.copyGrid(this.historyGrid[this.historyIndex]);
+                console.log("  > gridMap");
+                console.log(this.gridMap);
+                console.log("  > historyGrid");
+                console.log(this.historyGrid);
+                document.getElementById('end-message').style.display = 'none';
+                this.refreshGrid();
+            } else {
+                console.log("Undo NOT POSSIBLE");
+            }
+        };
+        
+        document.getElementById("redoButton").onclick = (event) => {
+            event.preventDefault();
+            if (this.historyIndex < this.turn) {
+                this.historyIndex += 1;
+                console.log(`Forward to turn ${this.historyIndex} / ${this.turn}`);
+                this.gridMap = this.copyGrid(this.historyGrid[this.historyIndex]);
+                console.log("  > gridMap");
+                console.table(this.gridMap);
+                console.log("  > historyGrid");
+                console.table(this.historyGrid);
+                this.refreshGrid();
+            } else {
+                console.log("Redo NOT POSSIBLE");
+            }
+        };
+    };
+
+    initLevel = () => {
+        document.getElementById("levelButton").textContent = `Current AI level: ${this.morpionLevel}`;
+        document.getElementById("levelButton").onclick = (event) => {
+            event.preventDefault();
+            switch (this.morpionLevel) {
+                case 1:
+                case 2:
+                    this.morpionLevel++;
+                    break;
+                default:
+                    this.morpionLevel = 1;
+                    break;
+            }
+            event.target.textContent = `Current AI level: ${this.morpionLevel}`;
+        }
+    };
 }
+
+
+// Main pgrogram
+const myMorpion = new Morpion();

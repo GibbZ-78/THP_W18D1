@@ -78,18 +78,65 @@ body {
 }
 
 .actions {
-	flex: 0 0 auto;
-	margin: 20px 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.actions-lines {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-around;
+	margin: 5px;
 }
 
 .replay-button {
 	padding: 10px 25px;
-	font-size: 2.5rem;
+	font-size: 1.5rem;
 	background-color: #C3C2C2;
 	color: #181818;
 	border-radius: 20px;
 	border: none;
 	cursor: pointer;
+	margin: 5px;
+}
+
+.undo-button {
+	padding: 10px 25px;
+	font-size: 1.5rem;
+	background-color: #ff0000;
+	color: #ffffff;
+	border-radius: 20px;
+	border: none;
+	cursor: pointer;
+	margin: 5px;
+}
+
+.redo-button {
+	padding: 10px 25px;
+	font-size: 1.5rem;
+	background-color: #00ff00;
+	color: #000000;
+	border-radius: 20px;
+	border: none;
+	cursor: pointer;
+	margin: 5px;
+}
+
+.disabled {
+	text-decoration: line-through;
+	background-color: #666666;
+	color: #ffffff;
+}
+
+.level-button {
+	padding: 10px 25px;
+	font-size: 1.5rem;
+	background-color: #000000;
+	color: #ffffff;
+	border-radius: 20px;
+	border: none;
+	cursor: pointer;
+	margin: 5px;
 }
 
 .end-message {
